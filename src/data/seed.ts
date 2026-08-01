@@ -345,5 +345,6 @@ export function createSeedData(): CommerceData {
         createdAt: '2026-07-30T10:15:00.000Z',
       },
     ],
+    escalations: [],
   };
 }
