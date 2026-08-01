@@ -4,6 +4,7 @@ import { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 import { commerceStore } from './data/store.js';
 import type { OrderSearchFilters } from './data/store.js';
+import { createHumanReviewEscalation } from './services/escalation.js';
 import {
   formatInvestigation,
   investigateSnapshot,
@@ -37,6 +38,13 @@ const issueTypeSchema = z.enum([
   'carrier_delay',
   'refunded',
   'none',
+]);
+
+const escalationQueueSchema = z.enum([
+  'fulfillment_review',
+  'inventory_review',
+  'payment_review',
+  'carrier_review',
 ]);
 
 server.registerTool(
@@ -194,6 +202,61 @@ server.registerTool(
         found: true,
         actions,
       },
+    };
+  },
+);
+
+server.registerTool(
+  'create_escalation',
+  {
+    title: 'Create Human-Review Escalation',
+    description:
+      'Create and audit a human-review escalation for a delayed or blocked synthetic order. This tool does not retry fulfillment, requeue work, reroute, cancel, edit addresses, issue refunds, or mutate post-dispatch state.',
+    inputSchema: z.object({
+      orderId: z
+        .string()
+        .min(1)
+        .describe('Synthetic order ID, for example ORD-1007.'),
+      createdBy: z
+        .string()
+        .email()
+        .describe('Synthetic operator email creating the escalation.'),
+      reason: z
+        .string()
+        .min(10)
+        .describe('Why this escalation is being created.'),
+      requestedQueue: escalationQueueSchema.optional(),
+    }),
+  },
+  async ({ orderId, createdBy, reason, requestedQueue }) => {
+    const result = createHumanReviewEscalation(commerceStore, {
+      orderId,
+      createdBy,
+      reason,
+      ...(requestedQueue ? { requestedQueue } : {}),
+    });
+
+    if (!result.ok) {
+      return {
+        content: [{ type: 'text', text: result.message }],
+        structuredContent: result,
+        isError: true,
+      };
+    }
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: [
+            `Created escalation ${result.escalation.id} for ${orderId}.`,
+            `Queue: ${result.escalation.queue}.`,
+            `No order or fulfillment state was mutated.`,
+            `Order status remains ${result.unchangedState.orderStatus}; fulfillment status remains ${result.unchangedState.fulfillmentStatus ?? 'unknown'}.`,
+          ].join(' '),
+        },
+      ],
+      structuredContent: result,
     };
   },
 );
