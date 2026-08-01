@@ -67,6 +67,14 @@ export type OrderAction =
   | 'modify_shipping_address'
   | 'issue_refund';
 
+export type EscalationStatus = 'open' | 'in_review' | 'resolved';
+
+export type EscalationQueue =
+  | 'fulfillment_review'
+  | 'inventory_review'
+  | 'payment_review'
+  | 'carrier_review';
+
 export interface OrderItem {
   sku: string;
   name: string;
@@ -144,6 +152,18 @@ export interface AuditLogEntry {
   metadata?: Record<string, string | number | boolean>;
 }
 
+export interface Escalation {
+  id: string;
+  orderId: string;
+  queue: EscalationQueue;
+  status: EscalationStatus;
+  blocker: string;
+  evidenceSummary: string[];
+  recommendedHumanAction: string;
+  createdBy: string;
+  createdAt: string;
+}
+
 export interface CommerceData {
   orders: Order[];
   payments: Payment[];
@@ -151,6 +171,7 @@ export interface CommerceData {
   fulfillments: Fulfillment[];
   events: OrderEvent[];
   auditLog: AuditLogEntry[];
+  escalations: Escalation[];
 }
 
 export interface OrderSnapshot {
@@ -160,4 +181,5 @@ export interface OrderSnapshot {
   fulfillment?: Fulfillment;
   events: OrderEvent[];
   auditLog: AuditLogEntry[];
+  escalations: Escalation[];
 }
