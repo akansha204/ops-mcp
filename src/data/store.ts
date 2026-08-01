@@ -2,7 +2,7 @@ import { createSeedData } from './seed.js';
 import type {
   AuditLogEntry,
   CommerceData,
-  Fulfillment,
+  Escalation,
   Order,
   OrderEvent,
   OrderIssueType,
@@ -65,6 +65,7 @@ export class CommerceStore {
       ),
       events: this.getOrderEvents(orderId),
       auditLog: this.getAuditLog(orderId),
+      escalations: this.getEscalations(orderId),
     };
 
     if (payment) {
@@ -90,31 +91,10 @@ export class CommerceStore {
       .toSorted((left, right) => left.createdAt.localeCompare(right.createdAt));
   }
 
-  updateOrder(orderId: string, updates: Partial<Order>): Order | undefined {
-    const order = this.getOrder(orderId);
-
-    if (!order) {
-      return undefined;
-    }
-
-    Object.assign(order, updates);
-    return order;
-  }
-
-  updateFulfillment(
-    orderId: string,
-    updates: Partial<Fulfillment>,
-  ): Fulfillment | undefined {
-    const fulfillment = this.data.fulfillments.find(
-      (candidate) => candidate.orderId === orderId,
-    );
-
-    if (!fulfillment) {
-      return undefined;
-    }
-
-    Object.assign(fulfillment, updates);
-    return fulfillment;
+  getEscalations(orderId: string): Escalation[] {
+    return this.data.escalations
+      .filter((entry) => entry.orderId === orderId)
+      .toSorted((left, right) => left.createdAt.localeCompare(right.createdAt));
   }
 
   addEvent(event: OrderEvent): OrderEvent {
@@ -125,6 +105,11 @@ export class CommerceStore {
   addAuditLogEntry(entry: AuditLogEntry): AuditLogEntry {
     this.data.auditLog.push(entry);
     return entry;
+  }
+
+  addEscalation(escalation: Escalation): Escalation {
+    this.data.escalations.push(escalation);
+    return escalation;
   }
 }
 
