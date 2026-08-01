@@ -28,6 +28,7 @@ export interface OrderInvestigation {
   paymentStatus: string | null;
   inventoryStatuses: string[];
   fulfillmentStatus: string | null;
+  openEscalationCount: number;
   diagnosis: Diagnosis;
   suggestedActions: SuggestedAction[];
   timeline: Array<{
@@ -51,6 +52,9 @@ export function investigateSnapshot(snapshot: OrderSnapshot): OrderInvestigation
       (reservation) => `${reservation.sku}:${reservation.status}`,
     ),
     fulfillmentStatus: snapshot.fulfillment?.status ?? null,
+    openEscalationCount: snapshot.escalations.filter(
+      (escalation) => escalation.status === 'open' || escalation.status === 'in_review',
+    ).length,
     diagnosis,
     suggestedActions: suggestActions(snapshot),
     timeline: snapshot.events.map((event) => ({
