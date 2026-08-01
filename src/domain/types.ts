@@ -57,10 +57,14 @@ export type OrderIssueType =
   | 'none';
 
 export type OrderAction =
-  | 'retry_fulfillment'
+  | 'create_human_review_escalation'
   | 'release_inventory_reservation'
   | 'escalate_to_warehouse'
   | 'send_customer_update'
+  | 'retry_fulfillment'
+  | 'reroute_order'
+  | 'cancel_order'
+  | 'modify_shipping_address'
   | 'issue_refund';
 
 export interface OrderItem {
