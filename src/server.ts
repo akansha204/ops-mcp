@@ -12,7 +12,7 @@ import {
 } from './services/investigation.js';
 
 const PORT = Number(process.env.PORT ?? 3001);
-const HOST = process.env.HOST ?? '127.0.0.1';
+const HOST = process.env.HOST ?? '0.0.0.0';
 
 const server = new McpServer({
   name: 'Commerce Operations MCP',
@@ -324,6 +324,15 @@ const transport = new NodeStreamableHTTPServerTransport({
 await server.connect(transport);
 
 const app = createMcpExpressApp({ host: HOST });
+
+app.get('/', (_req, res) => {
+  res.status(200).json({
+    ok: true,
+    service: 'Commerce Operations MCP',
+    endpoint: '/mcp',
+    note: 'Synthetic data only; no auth in this demo scope.',
+  });
+});
 
 app.all('/mcp', async (req, res) => {
   await transport.handleRequest(req, res, req.body);
