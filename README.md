@@ -217,4 +217,4 @@ npm run build
 
 ## Status
 
-Complete. The MCP server implements the delayed-or-blocked-order workflow with search, investigation, action suggestion, human-review escalation, and audit logging, all backed by synthetic data. It is deployed at `https://ops-mcp-qn8w.onrender.com/mcp`, verified by 11 passing tests, a 35-check protocol sweep against the hosted endpoint, and a zero-context AI-client session. Submission docs: this README, `AI_WORKLOG.md`, and `DEMO_SCRIPT.md`.
+Complete. The MCP server implements the delayed-or-blocked-order workflow with search, investigation, action suggestion, human-review escalation, and audit logging, all backed by synthetic data. It is deployed at `https://ops-mcp-qn8w.onrender.com/mcp`, verified by 11 passing tests, a 35-check protocol sweep against the hosted endpoint, and a zero-context AI-client session. Submission docs: this README and `AI_WORKLOG.md`.

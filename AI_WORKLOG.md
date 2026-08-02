@@ -17,14 +17,14 @@ This document records how AI tools were used across the assignment, which models
 
 ## How AI Was Used To Plan And Break Down The Work
 
-- The AI interpreted the open-ended brief, proposed several candidate commerce-operations workflows, and compared them on scope, effort, and how much they exercised the MCP. The delayed-or-blocked order investigation workflow was chosen because it touches order, payment, inventory, fulfillment, events, and audit concepts while remaining small enough to implement and verify in the timeframe.
+- The human used the AI to explore the open-ended brief: the AI proposed several candidate commerce-operations workflows and compared them on scope, effort, and how much they exercised the MCP. The human reviewed the options and chose the delayed-or-blocked order investigation workflow because it touches order, payment, inventory, fulfillment, events, and audit concepts while remaining small enough to implement and verify in the timeframe.
 - The work was broken into seven phases (scope -> architecture -> data -> tools -> verification -> deployment -> docs), each with an explicit "next move" handoff so the human owner always knew the immediate action.
-- AI generated the initial scaffolding, data model, service functions, tool registrations, and test scaffolding; the human owner reviewed and adjusted each phase.
+- AI generated the initial scaffolding, data model, service functions, tool registrations, and test scaffolding under the human's direction; the human owner reviewed and adjusted each phase.
 
 ## How Responsibilities Were Divided Between Human And AI
 
-- **Human owner**: final product judgment, choosing and confirming scope with the assignment giver, approving the remediation boundary, owning client communication, deployment account access, and recording the demo video.
-- **AI**: implementation support, documentation drafts, test writing, code review, running verification, explaining tradeoffs, and surfacing inconsistencies for the human to decide on.
+- **Human owner**: made every product and technical decision. The human chose and confirmed the scope with the assignment giver, set the remediation boundary, owned all client communication, managed the deployment account, and recorded the demo video.
+- **AI**: worked under the human's direction as an implementation assistant. It drafted code, tests, and documentation, ran verification, explained tradeoffs, and surfaced options for the human to decide on. It never made or overrode a product decision on its own.
 
 ## Important Prompts, Instructions, And Context Supplied
 
