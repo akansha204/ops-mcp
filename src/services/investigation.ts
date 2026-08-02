@@ -69,7 +69,6 @@ export function investigateSnapshot(snapshot: OrderSnapshot): OrderInvestigation
 export function suggestActions(snapshot: OrderSnapshot): SuggestedAction[] {
   const actions: SuggestedAction[] = [
     humanReviewEscalationAction(snapshot),
-    customerUpdateAction(snapshot),
     releaseInventoryAction(snapshot),
     retryFulfillmentAction(snapshot),
     rerouteOrderAction(),
@@ -240,20 +239,6 @@ function retryFulfillmentAction(snapshot: OrderSnapshot): SuggestedAction {
     reason: relevant
       ? 'MCP must not retry or requeue fulfillment; it can only escalate for human review.'
       : 'Retry is not relevant unless fulfillment has failed.',
-  };
-}
-
-function customerUpdateAction(snapshot: OrderSnapshot): SuggestedAction {
-  const allowed = snapshot.order.status !== 'delivered';
-
-  return {
-    action: 'send_customer_update',
-    allowed,
-    requiresApproval: false,
-    boundary: allowed ? 'mcp_allowed' : 'blocked',
-    reason: allowed
-      ? 'Customer-facing status update is safe and does not mutate commerce state.'
-      : 'Delivered orders do not need a delay update.',
   };
 }
 

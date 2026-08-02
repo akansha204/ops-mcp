@@ -60,7 +60,6 @@ export type OrderAction =
   | 'create_human_review_escalation'
   | 'release_inventory_reservation'
   | 'escalate_to_warehouse'
-  | 'send_customer_update'
   | 'retry_fulfillment'
   | 'reroute_order'
   | 'cancel_order'

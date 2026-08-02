@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "ops-mcp": {
+      "type": "remote",
+      "url": "https://ops-mcp-qn8w.onrender.com/mcp",
+      "enabled": true
+    }
+  }
+}
