@@ -4,9 +4,9 @@ import { createHumanReviewEscalation } from '../src/services/escalation.js';
 import { investigateSnapshot } from '../src/services/investigation.js';
 
 describe('commerce operations workflow', () => {
-  it('diagnoses the stuck fulfillment demo order and recommends escalation', () => {
+  it('diagnoses the stuck fulfillment demo order and recommends escalation', async () => {
     const store = new CommerceStore();
-    const snapshot = store.getOrderSnapshot('ORD-1007');
+    const snapshot = await store.getOrderSnapshot('ORD-1007');
 
     expect(snapshot).toBeDefined();
 
@@ -21,9 +21,9 @@ describe('commerce operations workflow', () => {
     );
   });
 
-  it('marks direct fulfillment retry as human-review-only', () => {
+  it('marks direct fulfillment retry as human-review-only', async () => {
     const store = new CommerceStore();
-    const snapshot = store.getOrderSnapshot('ORD-1007');
+    const snapshot = await store.getOrderSnapshot('ORD-1007');
     const investigation = investigateSnapshot(snapshot!);
 
     const retryAction = investigation.suggestedActions.find(
@@ -37,13 +37,13 @@ describe('commerce operations workflow', () => {
     });
   });
 
-  it('creates a human-review escalation and audit entry without mutating order state', () => {
+  it('creates a human-review escalation and audit entry without mutating order state', async () => {
     const store = new CommerceStore();
-    const before = store.getOrderSnapshot('ORD-1007');
+    const before = await store.getOrderSnapshot('ORD-1007');
 
     expect(before).toBeDefined();
 
-    const result = createHumanReviewEscalation(store, {
+    const result = await createHumanReviewEscalation(store, {
       orderId: 'ORD-1007',
       createdBy: 'ops@example.test',
       reason: 'Customer escalation after fulfillment timeout.',
@@ -55,7 +55,7 @@ describe('commerce operations workflow', () => {
       throw new Error(result.message);
     }
 
-    const after = store.getOrderSnapshot('ORD-1007');
+    const after = await store.getOrderSnapshot('ORD-1007');
 
     expect(after?.order.status).toBe(before?.order.status);
     expect(after?.fulfillment?.status).toBe(before?.fulfillment?.status);
@@ -82,15 +82,15 @@ describe('commerce operations workflow', () => {
     );
   });
 
-  it('rejects duplicate open escalations for the same order', () => {
+  it('rejects duplicate open escalations for the same order', async () => {
     const store = new CommerceStore();
 
-    const first = createHumanReviewEscalation(store, {
+    const first = await createHumanReviewEscalation(store, {
       orderId: 'ORD-1007',
       createdBy: 'ops@example.test',
       reason: 'Customer escalation after fulfillment timeout.',
     });
-    const second = createHumanReviewEscalation(store, {
+    const second = await createHumanReviewEscalation(store, {
       orderId: 'ORD-1007',
       createdBy: 'ops@example.test',
       reason: 'Duplicate escalation attempt.',
@@ -101,14 +101,14 @@ describe('commerce operations workflow', () => {
       ok: false,
       message: 'An open human-review escalation already exists for this order.',
     });
-    expect(store.getEscalations('ORD-1007')).toHaveLength(1);
+    expect(await store.getEscalations('ORD-1007')).toHaveLength(1);
   });
 
-  it('rejects escalation for refunded and unknown orders', () => {
+  it('rejects escalation for refunded and unknown orders', async () => {
     const store = new CommerceStore();
 
     expect(
-      createHumanReviewEscalation(store, {
+      await createHumanReviewEscalation(store, {
         orderId: 'ORD-1011',
         createdBy: 'ops@example.test',
         reason: 'Attempt to escalate closed refunded order.',
@@ -119,7 +119,7 @@ describe('commerce operations workflow', () => {
     });
 
     expect(
-      createHumanReviewEscalation(store, {
+      await createHumanReviewEscalation(store, {
         orderId: 'ORD-DOES-NOT-EXIST',
         createdBy: 'ops@example.test',
         reason: 'Unknown order escalation attempt.',

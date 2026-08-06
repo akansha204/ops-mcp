@@ -1,4 +1,5 @@
 import type { CommerceStore } from '../data/store.js';
+import { DuplicateOpenEscalationError } from '../data/persistence.js';
 import type {
   AuditLogEntry,
   Escalation,
@@ -29,11 +30,11 @@ export type CreateEscalationResult =
       message: string;
     };
 
-export function createHumanReviewEscalation(
+export async function createHumanReviewEscalation(
   store: CommerceStore,
   input: CreateEscalationInput,
-): CreateEscalationResult {
-  const snapshot = store.getOrderSnapshot(input.orderId);
+): Promise<CreateEscalationResult> {
+  const snapshot = await store.getOrderSnapshot(input.orderId);
 
   if (!snapshot) {
     return {
@@ -78,8 +79,18 @@ export function createHumanReviewEscalation(
     },
   };
 
-  store.addEscalation(escalation);
-  store.addAuditLogEntry(auditLogEntry);
+  try {
+    await store.createEscalationWithAudit(escalation, auditLogEntry);
+  } catch (error) {
+    if (error instanceof DuplicateOpenEscalationError) {
+      return {
+        ok: false,
+        message: 'An open human-review escalation already exists for this order.',
+      };
+    }
+
+    throw error;
+  }
 
   return {
     ok: true,

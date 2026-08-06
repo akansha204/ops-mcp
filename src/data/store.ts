@@ -1,4 +1,5 @@
 import { createSeedData } from './seed.js';
+import { MemoryPersistence, type Persistence } from './persistence.js';
 import type {
   AuditLogEntry,
   CommerceData,
@@ -17,9 +18,12 @@ export interface OrderSearchFilters {
 
 export class CommerceStore {
   private data: CommerceData;
+  private persistence: Persistence;
 
-  constructor(data: CommerceData = createSeedData()) {
+  constructor(data: CommerceData = createSeedData(), persistence?: Persistence) {
     this.data = structuredClone(data);
+    this.persistence =
+      persistence ?? new MemoryPersistence(structuredClone(data.auditLog));
   }
 
   searchOrders(filters: OrderSearchFilters = {}): Order[] {
@@ -47,7 +51,7 @@ export class CommerceStore {
     return this.data.orders.find((order) => order.id === orderId);
   }
 
-  getOrderSnapshot(orderId: string): OrderSnapshot | undefined {
+  async getOrderSnapshot(orderId: string): Promise<OrderSnapshot | undefined> {
     const order = this.getOrder(orderId);
 
     if (!order) {
@@ -64,8 +68,8 @@ export class CommerceStore {
         (reservation) => reservation.orderId === orderId,
       ),
       events: this.getOrderEvents(orderId),
-      auditLog: this.getAuditLog(orderId),
-      escalations: this.getEscalations(orderId),
+      auditLog: await this.getAuditLog(orderId),
+      escalations: await this.getEscalations(orderId),
     };
 
     if (payment) {
@@ -85,32 +89,18 @@ export class CommerceStore {
       .toSorted((left, right) => left.createdAt.localeCompare(right.createdAt));
   }
 
-  getAuditLog(orderId: string): AuditLogEntry[] {
-    return this.data.auditLog
-      .filter((entry) => entry.orderId === orderId)
-      .toSorted((left, right) => left.createdAt.localeCompare(right.createdAt));
+  async getAuditLog(orderId: string): Promise<AuditLogEntry[]> {
+    return this.persistence.getAuditLog(orderId);
   }
 
-  getEscalations(orderId: string): Escalation[] {
-    return this.data.escalations
-      .filter((entry) => entry.orderId === orderId)
-      .toSorted((left, right) => left.createdAt.localeCompare(right.createdAt));
+  async getEscalations(orderId: string): Promise<Escalation[]> {
+    return this.persistence.getEscalations(orderId);
   }
 
-  addEvent(event: OrderEvent): OrderEvent {
-    this.data.events.push(event);
-    return event;
-  }
-
-  addAuditLogEntry(entry: AuditLogEntry): AuditLogEntry {
-    this.data.auditLog.push(entry);
-    return entry;
-  }
-
-  addEscalation(escalation: Escalation): Escalation {
-    this.data.escalations.push(escalation);
-    return escalation;
+  async createEscalationWithAudit(
+    escalation: Escalation,
+    auditEntry: AuditLogEntry,
+  ): Promise<void> {
+    await this.persistence.createEscalationWithAudit(escalation, auditEntry);
   }
 }
-
-export const commerceStore = new CommerceStore();

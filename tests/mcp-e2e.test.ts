@@ -53,12 +53,15 @@ async function callTool(name: string, args: Record<string, unknown>) {
 }
 
 beforeAll(async () => {
+  const env = { ...process.env, PORT: String(TEST_PORT), HOST: '127.0.0.1' };
+  delete env.DATABASE_URL;
+
   child = spawn(
     process.execPath,
     [path.join(__dirname, '..', 'node_modules', 'tsx', 'dist', 'cli.mjs'), 'src/server.ts'],
     {
       cwd: path.join(__dirname, '..'),
-      env: { ...process.env, PORT: String(TEST_PORT), HOST: '127.0.0.1' },
+      env,
       stdio: 'pipe',
     },
   );

@@ -46,10 +46,26 @@ This document records how AI tools were used across the assignment, which models
 - **Corrected: Gemini CLI MCP transport.** The first `gemini mcp add` attempt failed because the CLI defaults to `stdio` transport. It was corrected with `--transport http`, and the server is registered at project scope.
 - **Corrected: Render build failure.** `error TS2688: Cannot find type definition file for 'node'` occurred because Render builds with `NODE_ENV=production`, which skips devDependencies. The build command was changed to `npm ci --include=dev && npm run build`, and the fix was verified locally under `NODE_ENV=production`.
 
+## Client Feedback Revision: Durable Persistence
+
+The assignment giver reviewed the first submission and requested one revision: escalations and audit entries were in-memory and reset on restart, so the submission lacked a PostgreSQL-backed durable state and a restart-surviving audit trail.
+
+The human owner agreed, and the persistence boundary was revised:
+
+- Added a `Persistence` interface with two implementations: `PostgresPersistence` (used when `DATABASE_URL` is set) and `MemoryPersistence` (fallback for local dev and the default test run).
+- Escalations and audit entries now live in PostgreSQL tables created automatically on startup, with the escalation and its audit entry written in a single transaction.
+- A partial unique index on `order_id WHERE status IN ('open','in_review')` enforces the one-open-escalation rule at the database level, so duplicate handling holds even across separate process instances or concurrent writes.
+- Reference order/payment/inventory/fulfillment data remains synthetic and deterministic; it re-seeds on startup, while escalations and the audit trail survive restarts and redeploys.
+- The health endpoint reports the active persistence backend so the deployed behavior can be confirmed remotely.
+
+This revision was a direct product decision by the human owner in response to client feedback; the AI implemented it and verified it.
+
 ## How AI-Generated Work Was Verified
 
 - TypeScript build (`npm run build`) run after every change.
-- 11 automated tests, all passing: 5 unit tests for the workflow and safety rules, and 6 end-to-end tests that boot the server over HTTP and drive the MCP protocol (2 files).
+- 14 automated tests, all passing when `DATABASE_URL` is set: 5 unit tests for the workflow and safety rules, 6 end-to-end tests that boot the server over HTTP and drive the MCP protocol, and 3 PostgreSQL integration tests covering escalation creation, duplicate handling across separate instances, and audit durability (2 files plus the integration suite).
+- The PostgreSQL integration suite was run against a real database (local container) and asserts durability by writing through one store instance and reading through a fresh instance over the same database, simulating a process restart.
+- A process-level restart check: the server was booted with PostgreSQL, an escalation was created through the MCP protocol, the process was killed, a fresh server was started against the same database, and the escalation and audit entry were confirmed present.
 - A 35-check manual protocol sweep against the local HTTP server covering the full workflow, safety boundaries, duplicate/refunded/unknown-order rejections, other issue types, and search.
 - The same sweep re-run against the deployed HTTPS endpoint.
 - The Docker image was built and booted locally, and the MCP initialize handshake was verified inside the container.
@@ -58,9 +74,10 @@ This document records how AI tools were used across the assignment, which models
 
 ## Remaining Risks And Unfinished Work
 
-- **In-memory state**: escalations and audit entries reset on restart or redeploy. This is intentional for the demo, but production would require a database, persistence, and idempotency keys for concurrent escalation attempts.
+- **Hosted database is a free-tier provider (Neon)**: the deployed PostgreSQL is durable and does not expire, but free-tier connection limits apply. Production would use a managed database with backups and scaling.
 - **No authentication**: acceptable because the server exposes only synthetic data, but auth and tenant isolation are required before any production use.
-- **Free-tier hosting cold starts**: the hosted instance sleeps after idle and can take 30-60 seconds to wake.
+- **Free-tier hosting cold starts**: the hosted web instance sleeps after idle and can take 30-60 seconds to wake.
+- **Reference data is still re-seeded from code**: orders, payments, inventory, and fulfillment are deterministic synthetic data, not persisted records. Only escalations and audit entries are durable. This matches the intended demo scope.
 - **Gemini free-tier rate limits**: can interrupt a live AI-client demo; the MCP Inspector and curl paths are always available as a fallback.
 - **`create_escalation` ID generation** uses `Date.now()`, which could collide under concurrent calls at high volume; fine at this scale.
 - **Out of scope by design**: customer-facing messaging, refund review, and routing escalations into a real ticketing or warehouse queue are documented as next steps rather than implemented.

@@ -2,7 +2,13 @@ import { createMcpExpressApp } from '@modelcontextprotocol/express';
 import { NodeStreamableHTTPServerTransport } from '@modelcontextprotocol/node';
 import { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
-import { commerceStore } from './data/store.js';
+import { CommerceStore } from './data/store.js';
+import { createSeedData } from './data/seed.js';
+import {
+  MemoryPersistence,
+  PostgresPersistence,
+  type Persistence,
+} from './data/persistence.js';
 import type { OrderSearchFilters } from './data/store.js';
 import { createHumanReviewEscalation } from './services/escalation.js';
 import {
@@ -13,6 +19,15 @@ import {
 
 const PORT = Number(process.env.PORT ?? 3001);
 const HOST = process.env.HOST ?? '0.0.0.0';
+const DATABASE_URL = process.env.DATABASE_URL;
+
+const persistence: Persistence = DATABASE_URL
+  ? new PostgresPersistence(DATABASE_URL, createSeedData().auditLog)
+  : new MemoryPersistence(createSeedData().auditLog);
+
+await persistence.init();
+
+export const commerceStore = new CommerceStore(createSeedData(), persistence);
 
 const server = new McpServer({
   name: 'Commerce Operations MCP',
@@ -117,7 +132,7 @@ server.registerTool(
     }),
   },
   async ({ orderId }) => {
-    const snapshot = commerceStore.getOrderSnapshot(orderId);
+    const snapshot = await commerceStore.getOrderSnapshot(orderId);
 
     if (!snapshot) {
       const output = {
@@ -159,7 +174,7 @@ server.registerTool(
     }),
   },
   async ({ orderId }) => {
-    const snapshot = commerceStore.getOrderSnapshot(orderId);
+    const snapshot = await commerceStore.getOrderSnapshot(orderId);
 
     if (!snapshot) {
       const output = {
@@ -229,7 +244,7 @@ server.registerTool(
     }),
   },
   async ({ orderId, createdBy, reason, requestedQueue }) => {
-    const result = createHumanReviewEscalation(commerceStore, {
+    const result = await createHumanReviewEscalation(commerceStore, {
       orderId,
       createdBy,
       reason,
@@ -291,7 +306,7 @@ server.registerTool(
       };
     }
 
-    const auditLog = commerceStore.getAuditLog(orderId);
+    const auditLog = await commerceStore.getAuditLog(orderId);
 
     return {
       content: [
@@ -330,6 +345,7 @@ app.get('/', (_req, res) => {
     ok: true,
     service: 'Commerce Operations MCP',
     endpoint: '/mcp',
+    persistence: DATABASE_URL ? 'postgres' : 'memory',
     note: 'Synthetic data only; no auth in this demo scope.',
   });
 });
@@ -346,5 +362,6 @@ process.on('SIGINT', async () => {
   httpServer.close();
   await transport.close();
   await server.close();
+  await persistence.close();
   process.exit(0);
 });
